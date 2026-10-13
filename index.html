@@ -75,6 +75,12 @@ label.f{display:block;font-size:12px;color:var(--ink2);margin:10px 0 4px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);display:flex;padding-bottom:var(--sab);z-index:4}
 nav button{flex:1;background:transparent;border-radius:0;min-height:52px;color:var(--ink2);font-size:12px;font-weight:500}
 nav button.on{color:var(--blue);font-weight:700}
+.facts{margin:14px 16px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.fact{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:baseline;padding:12px 14px;border-top:1px solid var(--line2);font-size:15px}
+.fact:first-child{border-top:0}
+.fact .k{font-size:11px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.fact .v{font-weight:600}
+.fact .w{font-size:12px;color:var(--ink3);white-space:nowrap}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px 16px 0}
 .tile{background:var(--soft);border-radius:10px;padding:10px 12px}
 .tile .l{font-size:11px;color:var(--ink2)}.tile .v{font-size:18px;font-weight:700;margin-top:2px}
@@ -184,26 +190,19 @@ const lastDate = ex => { const d=setsOf(ex).map(s=>s.done_on); return d.length?d
 const bwAt = date => { const b=S.bw.filter(x=>x.measured_on<=date); return b.length?+b[b.length-1].kg:(S.bw.length?+S.bw[0].kg:DEFAULT_BW); };
 
 /* ---------------- strength maths ---------------- */
-// Epley estimated 1RM. For bodyweight lifts it's the estimated max *added* weight at 1 rep, using bodyweight on that date.
-function est1(ex, w, r, date){
-  w=+w; r=+r; if(r<=0) return 0;
-  if(ex.kind==='bodyweight'){ const bw=bwAt(date||todayStr()); const tot=(bw+w)*(r===1?1:(1+r/30)); return tot-bw; }
-  if(ex.kind==='swing') return w*r; // volume for swings
-  return r===1? w : w*(1+r/30);
+// "Best" is the plain thing you'd say out loud: heaviest weight, and at that weight the most reps.
+// (For swings: heaviest bell, then most reps. For pull-ups with no added weight: most reps.)
+const rank = s => [+s.weight, s.reps];
+const beats = (a,b) => a[0]>b[0] || (a[0]===b[0] && a[1]>b[1]);
+function bestSet(ex){ let best=null; for(const s of setsOf(ex)){ if(!best || beats(rank(s),rank(best))) best=s; } return best; }
+function isPR(ex, s){ // beat everything logged on earlier dates (no badge on the first ever session)
+  const r=rank(s); let any=false;
+  for(const o of setsOf(ex)){ if(o.done_on<s.done_on){ any=true; if(!beats(r,rank(o))) return false; } }
+  for(const o of setsOf(ex)){ if(o.done_on===s.done_on && o.id!==s.id && (o.created_at||'')<(s.created_at||'') && !beats(r,rank(o))) return false; }
+  return any;
 }
-const fmtEst = (ex,v) => ex.kind==='bodyweight' ? (v>0?`BW+${Math.round(v)}kg`:'BW') : ex.kind==='swing' ? `${Math.round(v)}` : `${Math.round(v)}kg`;
-function bestSet(ex, before){ // best set by est1 among sets before (exclusive) date `before` (or all)
-  let best=null, bv=-1;
-  for(const s of setsOf(ex)){ if(before && s.done_on>=before) continue; const v=est1(ex,s.weight,s.reps,s.done_on); if(v>bv){bv=v;best=s;} }
-  return best;
-}
-function isPR(ex, s){ // was this set a record at the time it was logged (strictly beats everything on earlier dates)?
-  const v=est1(ex,s.weight,s.reps,s.done_on); if(v<=0) return false;
-  for(const o of setsOf(ex)){ if(o.done_on<s.done_on && est1(ex,o.weight,o.reps,o.done_on)>=v) return false; }
-  // also must beat earlier sets the same day
-  for(const o of setsOf(ex)){ if(o.done_on===s.done_on && o.id!==s.id && (o.created_at||'')<(s.created_at||'') && est1(ex,o.weight,o.reps,o.done_on)>=v) return false; }
-  return setsOf(ex).some(o=>o.done_on<s.done_on); // no PR badge on the very first session
-}
+// one number per session for the little trend line: heaviest weight that day (reps, for bodyweight-only lifts)
+function sessionTop(ex, sess){ const b=sess.sets.reduce((a,s)=>!a||beats(rank(s),rank(a))?s:a,null); if(!b) return null; return ex.kind==='bodyweight' && +b.weight===0 ? b.reps : +b.weight; }
 
 /* ---------------- progression ---------------- */
 const atWW = (ex,s) => Math.abs(+s.weight-(+ex.working_weight))<0.01;
@@ -249,13 +248,12 @@ function statusNote(ex){ // for today's session / lift page
   if(ex.kind!=='swing' && last && sessionHit(ex,last)) return {cls:'good',text:`Hit ${ex.target_reps}s across the board last time. Do it again and next session goes up ${num(ex.increment)}kg.`};
   return null;
 }
-// Projection: when does 3×target at the working weight beat the all-time best (by est1)?
+// Projection: when does a target set at the working weight beat the all-time best?
 function projection(ex){
   if(ex.kind==='swing' || ex.archived) return null;
   const t=todayStr(); const best=bestSet(ex); if(!best) return null;
-  const bestV=est1(ex,best.weight,best.reps,best.done_on);
   const inc=+ex.increment||2.5; let ww=+ex.working_weight, k=0;
-  while(est1(ex,ww,ex.target_reps,t)<=bestV && k<60){ ww+=inc; k++; }
+  while(!beats([ww,ex.target_reps],rank(best)) && k<60){ ww+=inc; k++; }
   // frequency: sessions of this lift in the last 8 weeks
   const since=dstr(new Date(Date.now()-56*86400000));
   const n=sessionsOf(ex).filter(s=>s.date>=since && s.date<t).length;
@@ -263,7 +261,7 @@ function projection(ex){
   const sessionsNeeded=k*2; // two hits per step
   const weeks=sessionsNeeded/freq, weeks2=sessionsNeeded/2;
   const when=w=>fmtDate(dstr(new Date(Date.now()+w*7*86400000)));
-  return {k, ww, bestV, best, freq, weeks, weeks2, date:when(weeks), date2:when(weeks2), sessionsNeeded};
+  return {k, ww, best, freq, weeks, weeks2, date:when(weeks), date2:when(weeks2), sessionsNeeded};
 }
 
 /* ---------------- day logic ---------------- */
@@ -366,30 +364,38 @@ function renderLifts(){
 function renderLift(){
   const ex=exById(S.liftId); if(!ex) { S.view='lifts'; return renderLifts(); }
   const t=todayStr(); const sessions=sessionsOf(ex);
-  const b=bestSet(ex); const bestV=b?est1(ex,b.weight,b.reps,b.done_on):0;
-  const pts=sessions.map(s=>({date:s.date, v:Math.max(...s.sets.map(x=>est1(ex,x.weight,x.reps,s.date)))}));
+  const b=bestSet(ex);
+  const past=sessions.filter(x=>x.date<t); const last=past[past.length-1];
   const pj=projection(ex);
-  let pjText='';
-  if(pj){
-    if(pj.k===0) pjText=`<div class="note good">Your next ${ex.target_sets}×${ex.target_reps} at ${fmtW(ex,ex.working_weight)} is already a new best. Go get it.</div>`;
-    else pjText=`<div class="note">On your current pace (${ex.name.toLowerCase()} ${pj.freq.toFixed(1)}×/week), ${ex.target_sets}×${ex.target_reps} at <b>${fmtW(ex,pj.ww)}</b> beats your ${fmtSet(ex,pj.best)} best — around <b>${pj.date}</b>. At 2×/week it'd be ${pj.date2}. Assumes you hit every session.</div>`;
-  }
-  const proj = pj && pj.k>0 ? {weeks:pj.weeks, v:est1(ex,pj.ww,ex.target_reps,t)} : null;
-  const hist=[...sessions].reverse().slice(0,40).map(s=>{ const mx=Math.max(...s.sets.map(x=>est1(ex,x.weight,x.reps,s.date))); const pr=s.sets.some(x=>isPR(ex,x));
-    return `<div class="row tap" style="grid-template-columns:62px 1fr auto" data-act="open" data-date="${s.date}" data-day="${ex.day}"><div class="muted">${fmtDate(s.date)}</div><div>${fmtSets(ex,s.sets)}${pr?' <span class="pr">PR</span>':''}</div><div class="muted">${fmtEst(ex,mx)}</div></div>`; }).join('');
+  const pjLine = pj ? (pj.k===0 ? 'next one is a new best' : `new best ~${pj.date}`) : '';
+  const pts=sessions.map(x=>({date:x.date, v:sessionTop(ex,x)}));
+  const unit = ex.kind==='bodyweight' && pts.every(p=>!setsOf(ex).some(s=>+s.weight>0)) ? 'reps' : 'kg';
+  const hist=[...sessions].reverse().slice(0,60).map(x=>{ const pr=x.sets.some(y=>isPR(ex,y));
+    return `<div class="row tap" style="grid-template-columns:62px 1fr" data-act="open" data-date="${x.date}" data-day="${ex.day}"><div class="muted">${fmtDate(x.date)}</div><div>${fmtSets(ex,x.sets)}${pr?' <span class="pr">PR</span>':''}</div></div>`; }).join('');
   const note=statusNote(ex);
-  const lt = ex.kind==='weight' && +ex.increment>=5 ? (()=>{ const heavy=setsOf(ex).filter(s=>s.reps<=2 && +s.weight>+ex.working_weight).map(s=>s.done_on); return heavy.length?heavy.reduce((a,b)=>a>b?a:b):null; })() : null;
-  const testDue = ex.kind==='weight' && +ex.increment>=5 && (!lt || daysBetween(lt,t)>=TEST_EVERY_DAYS);
   return `<div class="hdr"><button class="back" data-act="back">‹ Lifts</button><h1 style="font-size:20px">${esc(ex.name)}</h1><div class="right">${DAYS[ex.day]}<button class="gear" data-act="editex" data-id="${ex.id}" aria-label="Edit">✎</button></div></div>
-    <div class="tiles"><div class="tile"><div class="l">Next</div><div class="v">${targetStr(ex)}</div></div><div class="tile"><div class="l">Best</div><div class="v">${b?fmtSet(ex,b):'—'}</div></div><div class="tile"><div class="l">${ex.kind==='swing'?'Best volume':'Est. max'}</div><div class="v">${b?fmtEst(ex,bestV):'—'}</div></div></div>
+    <div class="facts">
+      <div class="fact"><span class="k">Best</span><span class="v">${b?fmtSet(ex,b):'—'}</span><span class="w">${b?fmtDate(b.done_on):''}</span></div>
+      <div class="fact"><span class="k">Next</span><span class="v">${targetStr(ex)} · ${ex.target_sets} sets</span><span class="w">${pjLine}</span></div>
+      <div class="fact"><span class="k">Last</span><span class="v">${last?fmtSets(ex,last.sets):'—'}</span><span class="w">${last?fmtDate(last.date):''}</span></div>
+    </div>
     <div class="pad rowbtn"><button class="primary" style="flex:1" data-act="selex" data-id="${ex.id}">Log a set today</button></div>
     ${note?`<div class="note ${note.cls}">${note.text}</div>`:''}
-    ${testDue?`<div class="note">Max test due — last heavy single ${lt?fmtDate(lt):'never'}. Any set you log above the working weight is tracked automatically.</div>`:''}
-    <div class="pad" style="margin-top:14px"><div class="tiny" style="text-transform:uppercase;letter-spacing:.04em">${ex.kind==='swing'?'Best volume per session':'Estimated 1-rep max per session'}${proj?' · dashed = projection':''}</div>${chart(pts,{proj,fmt:v=>fmtEst(ex,v).replace('kg','')})}</div>
-    ${pjText}
-    <div class="thead" style="grid-template-columns:62px 1fr auto;margin-top:12px"><div>Date</div><div>Sets</div><div>Max</div></div>
+    ${pts.length>2?`<div class="pad" style="margin-top:16px">${spark(pts,unit)}</div>`:''}
+    <div class="thead" style="grid-template-columns:62px 1fr;margin-top:14px"><div>Date</div><div>Sets</div></div>
     ${hist||'<p class="muted small pad" style="margin-top:12px">No sessions yet.</p>'}
     <div style="height:170px"></div>`;
+}
+// Trend line: one point per session, no clutter. Just "is the line going up".
+function spark(pts,unit){
+  const W=358,H=70,px=30,py=10; const data=pts.filter(p=>p.v!=null);
+  const ms=s=>new Date(s+'T00:00').getTime();
+  let x0=ms(data[0].date), x1=ms(data[data.length-1].date); if(x0===x1) x1=x0+86400000;
+  let y0=Math.min(...data.map(p=>p.v)), y1=Math.max(...data.map(p=>p.v)); if(y0===y1){y0-=1;y1+=1;}
+  const X=t=>px+(t-x0)/(x1-x0)*(W-px-8), Y=v=>H-py-(v-y0)/(y1-y0)*(H-2*py);
+  const line=data.map((p,i)=>`${i?'L':'M'}${X(ms(p.date)).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
+  const dots=data.map(p=>`<circle cx="${X(ms(p.date)).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="var(--blue)"/>`).join('');
+  return `<div class="tiny" style="text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">${unit==='reps'?'Most reps':'Heaviest set'} per session</div><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:70px;display:block" role="img"><text x="${px-6}" y="${Y(y1)+4}" text-anchor="end" font-size="10" fill="var(--ink3)">${num(y1)}</text><text x="${px-6}" y="${Y(y0)+4}" text-anchor="end" font-size="10" fill="var(--ink3)">${num(y0)}</text><path d="${line}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round"/>${dots}</svg><div class="tiny" style="display:flex;justify-content:space-between"><span>${fmtDate(data[0].date)}</span><span>${fmtDate(data[data.length-1].date)}</span></div>`;
 }
 function renderBody(){
   const pts=S.bw.map(b=>({date:b.measured_on, v:+b.kg}));
@@ -432,7 +438,7 @@ function renderSettings(){
     <div id="exform"></div>
     <div class="sec"><span>Lifts</span><button class="ghost sm" data-act="editex" data-id="" style="min-height:0;padding:0;font-size:11px;text-transform:uppercase">+ add</button></div>
     ${exRows||'<p class="muted small pad" style="margin-top:10px">None yet.</p>'}
-    <div class="card"><b>How the numbers work</b><p class="small muted" style="margin:6px 0 0;line-height:1.5">Each lift has a working weight. Target is 3 sets of 5 at that weight. Hit 5/5/5 two sessions running → +5 kg (+2.5 on pull-ups and rows). Get stuck at 3 or fewer reps at the working weight → −5 kg. Heavier sets never count against you. Swings: every set at target+5 reps → bell goes up. PRs and estimated max are worked out from every set automatically. Projections assume you hit every session.</p></div>
+    <div class="card"><b>How the numbers work</b><p class="small muted" style="margin:6px 0 0;line-height:1.5">Each lift has a working weight. Target is 3 sets of 5 at that weight. Hit 5/5/5 two sessions running → +5 kg (+2.5 on pull-ups and rows). Get stuck at 3 or fewer reps at the working weight → −5 kg. Heavier sets never count against you. Swings: every set at target+5 reps → bell goes up. Best and PR are simply your heaviest set (most reps at that weight). The "new best expected" date assumes you hit every session.</p></div>
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><button class="sm" data-act="export">Export CSV</button><span class="tiny">${S.sets.length} sets · ${S.cardio.length} cardio · ${S.bw.length} weigh-ins</span></div></div>`;
 }
 function exForm(e){
