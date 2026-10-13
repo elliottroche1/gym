@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Gym</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gym">
+<meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f4f6" media="(prefers-color-scheme: light)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f4f4f6; --card:#ffffff; --ink:#15171c; --ink2:#5b6070; --ink3:#8a90a0; --line:#e3e5ea;
+  --accent:#2f6df6; --accent-ink:#ffffff; --good:#1f9d55; --warn:#d0781a; --bad:#d13a3a;
+  --chip:#eceef3; --chip-on:#15171c; --chip-on-ink:#fff; --radius:14px;
+  --sat:env(safe-area-inset-top); --sab:env(safe-area-inset-bottom);
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#111317; --card:#1b1e25; --ink:#eef0f4; --ink2:#a4aab8; --ink3:#6f7585; --line:#2a2e38;
+  --accent:#6b9cff; --accent-ink:#0b1020; --good:#43c37a; --warn:#f0a04a; --bad:#ff6b6b;
+  --chip:#262a34; --chip-on:#eef0f4; --chip-on-ink:#111317;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{padding-top:var(--sat);padding-bottom:calc(64px + var(--sab))}
+main{max-width:560px;margin:0 auto;padding:12px 16px 24px}
+h1{font-size:22px;margin:8px 0 4px}
+h2{font-size:17px;margin:18px 0 8px}
+h3{font-size:16px;margin:0}
+.muted{color:var(--ink2)} .small{font-size:13px} .tiny{font-size:12px;color:var(--ink3)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:10px 0}
+.row{display:flex;align-items:center;gap:8px} .between{justify-content:space-between} .wrap{flex-wrap:wrap}
+.grow{flex:1} .right{text-align:right}
+button{font:inherit;color:inherit;background:var(--chip);border:0;border-radius:10px;padding:10px 14px;cursor:pointer;min-height:44px}
+button:active{filter:brightness(.9)}
+button.primary{background:var(--accent);color:var(--accent-ink);font-weight:600}
+button.ghost{background:transparent;color:var(--accent);padding:8px 6px;min-height:36px}
+button.danger{color:var(--bad)}
+button.sm{min-height:36px;padding:6px 10px;font-size:14px;border-radius:8px}
+button:disabled{opacity:.45}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--chip);border-radius:999px;padding:8px 14px;min-height:40px;font-size:15px}
+.chip.on{background:var(--chip-on);color:var(--chip-on-ink);font-weight:600}
+.chip .sub{display:block;font-size:11px;opacity:.75;font-weight:400;line-height:1}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:100%}
+input[type=number]{-moz-appearance:textfield}
+label.f{display:block;font-size:13px;color:var(--ink2);margin:10px 0 4px}
+.stepper{display:flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.stepper button{background:transparent;border-radius:0;min-width:40px;min-height:48px;font-size:22px;padding:0;flex:0 0 40px}
+.stepper input{border:0;background:transparent;text-align:center;font-size:20px;font-weight:600;width:0;flex:1;min-width:36px;padding:0;min-height:48px}
+.stepper .u{font-size:11px;color:var(--ink3);padding-right:4px;flex:0 0 auto}
+.setchip{background:var(--chip);border-radius:10px;padding:8px 12px;font-weight:600;min-height:40px}
+.setchip.test{outline:2px dashed var(--warn);outline-offset:-2px}
+.setchip.hit{color:var(--good)}
+.plan{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin:10px 0}
+.plan b{font-weight:600}
+.note{font-size:13px;padding:8px 10px;border-radius:10px;background:var(--chip)}
+.note.good{color:var(--good)} .note.warn{color:var(--warn)}
+.banner{background:var(--warn);color:#111;padding:10px 14px;border-radius:12px;margin:8px 0;font-size:14px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:var(--sab);z-index:5}
+nav button{flex:1;background:transparent;border-radius:0;min-height:56px;color:var(--ink3);font-size:13px;font-weight:600}
+nav button.on{color:var(--accent)}
+.hidden{display:none !important}
+svg.chart{width:100%;height:160px;display:block}
+.sess{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.sess:first-child{border-top:0}
+.sess .d{color:var(--ink2);white-space:nowrap;min-width:64px}
+.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)}
+.toggle input{width:20px;height:20px;min-height:0;margin:0}
+.auth{max-width:380px;margin:60px auto}
+.today-tag{font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.04em}
+.overdue{color:var(--warn)}
+hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<main id="app"><p class="muted" style="padding:40px 0;text-align:center">Loading…</p></main>
+<nav id="nav" class="hidden">
+  <button data-tab="today">Today</button>
+  <button data-tab="progress">Progress</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="seed.js"></script>
+<script>
+/* ======================= CONFIG =======================
+   Paste your Supabase project URL and anon (public) key here.
+   Supabase dashboard → Project Settings → API.
+   Leave blank and the app will ask for them on first open instead. */
+   const SUPABASE_URL = "https://xicbnfvgucmjwlhactlt.supabase.co/rest/v1/";
+   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpY2JuZnZndWNtandsaGFjdGx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTY2NjAsImV4cCI6MjA3NzA3MjY2MH0.g03X6Cs883C0xl2oozs4-TlzyFEShcp2LjtNGe5JKNg";
+/* ===================================================== */
+
+const MOCK = new URLSearchParams(location.search).get('mock') === '1';
+const DAYS = {push:'Push', legs:'Legs', pull:'Pull', other:'Other'};
+const MACHINES = ['Treadmill','Bike','Stepper','Rower','Other'];
+const TEST_EVERY_DAYS = 56;
+const BW_TARGET = 70;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const daysBetween = (a,b) => Math.round((new Date(b+'T00:00') - new Date(a+'T00:00'))/86400000);
+const fmtDate = s => { const d=new Date(s+'T00:00'); return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); };
+const ago = s => { if(!s) return 'never'; const n=daysBetween(s,todayStr()); return n===0?'today':n===1?'yesterday':`${n} days ago`; };
+const fmtW = (ex,w) => ex.kind==='bodyweight' ? (w>0?`BW+${w}`:'BW') : `${+w} kg`;
+const round25 = x => Math.round(x/2.5)*2.5;
+
+/* ---------------- data layer ---------------- */
+let DB;
+function makeSupabaseDB(url,key){
+  const sb = supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true}});
+  const q = async p => { const {data,error} = await p; if(error) throw error; return data; };
+  const T = t => 'gym_'+t; // tables are prefixed so they can share a project with another app
+  return {
+    kind:'supabase',
+    async session(){ return (await sb.auth.getSession()).data.session; },
+    onAuth(fn){ sb.auth.onAuthStateChange((_e,s)=>fn(s)); },
+    async signIn(email,password){ return q(sb.auth.signInWithPassword({email,password})); },
+    async signUp(email,password){ return q(sb.auth.signUp({email,password})); },
+    async signOut(){ await sb.auth.signOut(); },
+    async loadAll(){
+      const [exercises,sets,cardio,bodyweight] = await Promise.all([
+        q(sb.from(T('exercises')).select('*').order('sort_order')),
+        q(sb.from(T('sets')).select('*').order('done_on').order('created_at')),
+        q(sb.from(T('cardio')).select('*').order('done_on')),
+        q(sb.from(T('bodyweight')).select('*').order('measured_on')),
+      ]);
+      return {exercises,sets,cardio,bodyweight};
+    },
+    insert:(t,row)=>q(sb.from(T(t)).insert(row).select().single()),
+    insertMany:(t,rows)=>q(sb.from(T(t)).insert(rows).select()),
+    update:(t,id,patch)=>q(sb.from(T(t)).update(patch).eq('id',id).select().single()),
+    remove:(t,id)=>q(sb.from(T(t)).delete().eq('id',id)),
+  };
+}
+function makeMockDB(){
+  const store = {exercises:[],sets:[],cardio:[],bodyweight:[]};
+  let n=0; const id=()=>'m'+(++n);
+  const sleep = ()=>new Promise(r=>setTimeout(r,5));
+  return {
+    kind:'mock',
+    async session(){ return {user:{email:'mock@example.com'}}; },
+    onAuth(){}, async signIn(){}, async signUp(){}, async signOut(){},
+    async loadAll(){ await sleep(); return JSON.parse(JSON.stringify(store)); },
+    async insert(t,row){ await sleep(); const r={id:id(),created_at:new Date().toISOString(),...row}; store[t].push(r); return {...r}; },
+    async insertMany(t,rows){ const out=[]; for(const r of rows) out.push(await this.insert(t,r)); return out; },
+    async update(t,i,patch){ await sleep(); const r=store[t].find(x=>x.id===i); Object.assign(r,patch); return {...r}; },
+    async remove(t,i){ await sleep(); store[t]=store[t].filter(x=>x.id!==i); },
+  };
+}
+
+/* ---------------- state ---------------- */
+const S = { tab:'today', day:null, extra:new Set(), ex:[], sets:[], cardio:[], bw:[], user:null, progEx:null, busy:false, err:null };
+
+const exById = id => S.ex.find(e=>e.id===id);
+const setsOf = ex => S.sets.filter(s=>s.exercise_id===ex.id);
+const sessionsOf = (ex, {includeTest=false}={}) => {
+  const m = new Map();
+  for(const s of setsOf(ex)){ if(!includeTest && s.is_test) continue; if(!m.has(s.done_on)) m.set(s.done_on,[]); m.get(s.done_on).push(s); }
+  return [...m.entries()].sort((a,b)=>a[0]<b[0]?-1:1).map(([date,sets])=>({date,sets}));
+};
+const lastDate = ex => { const d=setsOf(ex).map(s=>s.done_on); return d.length?d.reduce((a,b)=>a>b?a:b):null; };
+const lastTest = ex => { const d=setsOf(ex).filter(s=>s.is_test).map(s=>s.done_on); return d.length?d.reduce((a,b)=>a>b?a:b):null; };
+const fmtSets = (ex,sets) => sets.map(s=>`${ex.kind==='bodyweight'?(s.weight>0?'+'+(+s.weight):'BW'):+s.weight}×${s.reps}${s.is_test?'*':''}`).join(', ');
+
+/* ---------------- progression ---------------- */
+function sessionHit(ex,sess){ // all target sets done at >= working weight with >= target reps
+  const ok = sess.sets.filter(s=>+s.weight>=+ex.working_weight && s.reps>=ex.target_reps + (ex.kind==='swing'?5:0));
+  return ok.length>=ex.target_sets;
+}
+function sessionFail(ex,sess){ // any set at working weight that fell well short
+  if(ex.kind==='swing') return false;
+  return sess.sets.some(s=>+s.weight>=+ex.working_weight && s.reps<=Math.max(1,ex.target_reps-2));
+}
+// Returns {next, reason} for what the working weight should be after `sessions`
+function evaluate(ex, sessions){
+  const since = sessions.filter(s=>s.date>ex.ww_updated_on);
+  if(!since.length) return null;
+  const last = since[since.length-1], prev = since[since.length-2];
+  const inc = +ex.increment;
+  if(sessionFail(ex,last)) return {next:Math.max(0,+ex.working_weight-inc), on:last.date, reason:'drop'};
+  if(ex.kind==='swing'){ if(sessionHit(ex,last)) return {next:+ex.working_weight+inc, on:last.date, reason:'up'}; return null; }
+  if(prev && sessionHit(ex,last) && sessionHit(ex,prev)) return {next:+ex.working_weight+inc, on:last.date, reason:'up'};
+  return null;
+}
+async function applyProgression(){ // only sessions strictly before today, so a session in progress never bumps early
+  const t = todayStr();
+  for(const ex of S.ex){
+    if(ex.archived) continue;
+    const r = evaluate(ex, sessionsOf(ex).filter(s=>s.date<t));
+    if(r && (r.next!==+ex.working_weight || r.on!==ex.ww_updated_on)){
+      const row = await DB.update('exercises',ex.id,{working_weight:r.next, ww_updated_on:r.on});
+      Object.assign(ex,row);
+    }
+  }
+}
+function planFor(ex){
+  const ww = +ex.working_weight;
+  const warm = [];
+  if(ex.kind==='weight'){
+    if(ww>=40 && ['Bench press','Military press','Barbell squat'].includes(ex.name)) warm.push('Bar × 5');
+    const w75 = +ex.increment>=5 ? Math.round(ww*0.75/5)*5 : round25(ww*0.75);
+    if(w75>0 && w75<ww) warm.push(`${w75} × 3`);
+  } else if(ex.kind==='bodyweight'){ warm.push(ww>0?'BW × 3':'2–3 easy reps'); }
+  const target = ex.kind==='swing' ? `${ww} kg × ${ex.target_reps} · ${ex.target_sets} set${ex.target_sets>1?'s':''}`
+               : `${fmtW(ex,ww)} × ${ex.target_reps} · ${ex.target_sets} sets`;
+  return {warm: warm.join(' → ') || '—', target};
+}
+function progressNote(ex){
+  const t = todayStr();
+  const sessions = sessionsOf(ex);
+  const todaySess = sessions.find(s=>s.date===t);
+  const before = sessions.filter(s=>s.date<t);
+  const since = before.filter(s=>s.date>ex.ww_updated_on);
+  const last = since[since.length-1];
+  if(todaySess){
+    const r = evaluate(ex, sessions);
+    if(r && r.reason==='up') return {cls:'good', text:`Done — next session goes up to ${fmtW(ex,r.next)}.`};
+    if(r && r.reason==='drop') return {cls:'warn', text:`Tough one. Next session drops to ${fmtW(ex,r.next)}.`};
+    if(sessionHit(ex,todaySess)) return {cls:'good', text: ex.kind==='swing' ? 'Target hit.' : `Target hit${last&&sessionHit(ex,last)?'':' — once more next time and the weight goes up'}.`};
+    return null;
+  }
+  if(ex.kind!=='swing' && last && sessionHit(ex,last)) return {cls:'good', text:`Hit ${ex.target_reps}s across the board last time. Do it again today and next session goes up ${+ex.increment} kg.`};
+  if(ex.kind==='swing') return {cls:'', text:`Get ${ex.target_reps+5}+ on every set and the bell goes up next time.`};
+  return null;
+}
+
+/* ---------------- rendering ---------------- */
+function render(){
+  const app = $('#app');
+  $('#nav').classList.remove('hidden');
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===S.tab));
+  app.innerHTML = (S.err?`<div class="banner">${esc(S.err)}</div>`:'') + ({today:renderToday, progress:renderProgress, settings:renderSettings}[S.tab])();
+  bind();
+}
+function dayInfo(){
+  const core = d => S.ex.filter(e=>!e.archived && e.core && e.day===d);
+  return ['push','legs','pull'].map(d=>{
+    const dates = core(d).map(lastDate).filter(Boolean);
+    const last = dates.length?dates.reduce((a,b)=>a>b?a:b):null;
+    return {d,last,days:last?daysBetween(last,todayStr()):999};
+  });
+}
+function suggestedDay(){ const info=dayInfo(); return info.sort((a,b)=>b.days-a.days)[0].d; }
+
+function renderToday(){
+  const t = todayStr();
+  if(!S.day) S.day = suggestedDay();
+  const info = dayInfo(); const sug = suggestedDay();
+  const chips = info.map(i=>`<button class="chip ${S.day===i.d?'on':''}" data-day="${i.d}">${DAYS[i.d]}<span class="sub">${i.last?ago(i.last):'never'}</span></button>`).join('');
+  // cardio
+  const c = S.cardio.find(x=>x.done_on===t);
+  const cardio = c ? `<div class="row between"><div><b>${esc(c.machine||'Cardio')}</b> <span class="muted small">${[c.minutes&&c.minutes+' min',c.calories&&c.calories+' kcal',c.distance&&c.distance+' mi'].filter(Boolean).join(' · ')||'logged'}</span></div><button class="sm" data-act="delcardio" data-id="${c.id}">✕</button></div>`
+    : `<div class="chips" id="machines">${MACHINES.map(m=>`<button class="chip" data-machine="${m}">${m}</button>`).join('')}</div>
+       <div class="row" style="margin-top:10px"><input id="c-min" type="number" inputmode="decimal" placeholder="min"><input id="c-cal" type="number" inputmode="numeric" placeholder="kcal"><input id="c-dist" type="number" inputmode="decimal" placeholder="mi"><button class="primary" data-act="savecardio">Save</button></div>`;
+  // exercises
+  const list = S.ex.filter(e=>!e.archived && ((e.core && e.day===S.day) || S.extra.has(e.id) || setsOf(e).some(s=>s.done_on===t)));
+  const cards = list.map(renderExCard).join('');
+  const others = S.ex.filter(e=>!e.archived && !list.includes(e));
+  // bodyweight nudge
+  const lastBw = S.bw[S.bw.length-1];
+  const bwNudge = (!lastBw || daysBetween(lastBw.measured_on,t)>=7) ? `<div class="card row between"><div><b>Weigh-in</b> <span class="muted small">${lastBw?`last ${fmtDate(lastBw.measured_on)}: ${+lastBw.kg} kg`:'none yet'}</span></div><div class="row"><input id="bw-kg" type="number" inputmode="decimal" step="0.1" placeholder="kg" style="width:90px"><button class="primary" data-act="savebw">Save</button></div></div>` : '';
+  return `
+    <div class="row between"><h1>${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</h1></div>
+    <p class="muted small" style="margin:0 0 10px">Suggested: <b>${DAYS[sug]}</b> (longest since trained). Tap a day to override.</p>
+    <div class="chips">${chips}</div>
+    <div class="card"><h3>Cardio warm-up</h3><div style="margin-top:8px">${cardio}</div></div>
+    ${bwNudge}
+    ${cards}
+    ${others.length?`<div class="card"><label class="f" style="margin-top:0">Add another exercise today</label><select id="add-ex"><option value="">Choose…</option>${others.map(e=>`<option value="${e.id}">${esc(e.name)} (${DAYS[e.day]})</option>`).join('')}</select></div>`:''}
+  `;
+}
+function renderExCard(ex){
+  const t = todayStr();
+  const sessions = sessionsOf(ex,{includeTest:true});
+  const past = sessions.filter(s=>s.date<t);
+  const last = past[past.length-1];
+  const todaySets = setsOf(ex).filter(s=>s.done_on===t);
+  const plan = planFor(ex);
+  const note = progressNote(ex);
+  const lt = lastTest(ex);
+  const testDue = ex.kind==='weight' && ex.core && +ex.increment>=5 && (!lt || daysBetween(lt,t)>=TEST_EVERY_DAYS);
+  const step = ex.kind==='swing' ? +ex.increment : (ex.kind==='bodyweight'?2.5:2.5);
+  const defW = +ex.working_weight, defR = ex.target_reps;
+  const ld = lastDate(ex);
+  return `<div class="card" data-ex="${ex.id}">
+    <div class="row between"><h3>${esc(ex.name)}</h3><span class="tiny ${ld&&daysBetween(ld,t)>10?'overdue':''}">${ago(ld)}</span></div>
+    ${last?`<div class="small muted">Last (${fmtDate(last.date)}): ${fmtSets(ex,last.sets)}</div>`:'<div class="small muted">No history yet</div>'}
+    <div class="plan"><span class="muted">Warm-up</span><b>${plan.warm}</b><span class="muted">Target</span><b>${plan.target}</b></div>
+    ${note?`<div class="note ${note.cls}">${note.text}</div>`:''}
+    ${testDue&&!todaySets.length?`<div class="tiny" style="margin-top:6px">Max test due (last: ${lt?fmtDate(lt):'never'}). Tick "max attempt" if you go for it.</div>`:''}
+    ${todaySets.length?`<div class="chips" style="margin-top:10px">${todaySets.map(s=>`<button class="setchip ${s.is_test?'test':''} ${(!s.is_test&&+s.weight>=defW&&s.reps>=defR)?'hit':''}" data-act="delset" data-id="${s.id}" title="tap to remove">${ex.kind==='bodyweight'?(s.weight>0?'+'+(+s.weight):'BW'):+s.weight}×${s.reps}</button>`).join('')}</div>`:''}
+    <div class="row" style="margin-top:10px">
+      <div class="stepper grow"><button data-step="w" data-d="-${step}">−</button><input class="w" type="number" inputmode="decimal" value="${todaySets.length?+todaySets[todaySets.length-1].weight:defW}"><span class="u">${ex.kind==='bodyweight'?'+kg':'kg'}</span><button data-step="w" data-d="${step}">+</button></div>
+      <div class="stepper grow"><button data-step="r" data-d="-1">−</button><input class="r" type="number" inputmode="numeric" value="${defR}"><span class="u">${ex.name.includes('sec')?'sec':'reps'}</span><button data-step="r" data-d="1">+</button></div>
+    </div>
+    <div class="row between" style="margin-top:10px">
+      <label class="toggle"><input type="checkbox" class="test"> max attempt</label>
+      <button class="primary" data-act="logset">Log set ${todaySets.length+1}</button>
+    </div>
+  </div>`;
+}
+
+function renderProgress(){
+  const list = S.ex.filter(e=>!e.archived);
+  if(!S.progEx || !list.find(e=>e.id===S.progEx)) S.progEx = (list.find(e=>e.core)||list[0]||{}).id;
+  const ex = exById(S.progEx);
+  const extras = list.filter(e=>!e.core);
+  const chips = list.filter(e=>e.core).map(e=>`<button class="chip ${e.id===S.progEx?'on':''}" data-prog="${e.id}">${esc(e.name)}</button>`).join('')
+    + (extras.length?`<select id="prog-extra" style="width:auto;min-height:40px;border-radius:999px;padding:6px 12px"><option value="">Extras…</option>${extras.map(e=>`<option value="${e.id}" ${e.id===S.progEx?'selected':''}>${esc(e.name)}</option>`).join('')}</select>`:'');
+  let body = '';
+  if(ex){
+    const sessions = sessionsOf(ex,{includeTest:true});
+    const pts = sessions.map(s=>{
+      const work = s.sets.filter(x=>!x.is_test && (ex.kind==='swing' || x.reps>=3));
+      const top = work.length?Math.max(...work.map(x=>+x.weight)):null;
+      const test = s.sets.filter(x=>x.is_test).length?Math.max(...s.sets.filter(x=>x.is_test).map(x=>+x.weight)):null;
+      return {date:s.date, top, test};
+    });
+    body = `<div class="card">
+      <div class="row between"><h3>${esc(ex.name)}</h3><span class="tiny">working: ${fmtW(ex,ex.working_weight)}</span></div>
+      <p class="tiny" style="margin:4px 0 8px">${ex.kind==='swing'?'Bell weight per session':'Top working weight per session (≥3 reps)'}${pts.some(p=>p.test!=null)?' · ◇ max attempts':''}</p>
+      ${chart(pts)}
+      <div style="margin-top:10px">${[...sessions].reverse().slice(0,40).map(s=>`<div class="sess"><span class="d">${fmtDate(s.date)}</span><span class="grow right">${fmtSets(ex,s.sets)}</span></div>`).join('')||'<p class="muted small">No sessions yet.</p>'}</div>
+    </div>`;
+  }
+  const bwPts = S.bw.map(b=>({date:b.measured_on, top:+b.kg}));
+  const bwCard = `<div class="card">
+    <div class="row between"><h3>Bodyweight</h3><span class="tiny">target ${BW_TARGET} kg</span></div>
+    ${bwPts.length?chart(bwPts,{ref:BW_TARGET,decimals:1}):'<p class="muted small">No weigh-ins yet.</p>'}
+    <div class="row" style="margin-top:10px"><input id="bw-kg" type="number" inputmode="decimal" step="0.1" placeholder="kg today"><button class="primary" data-act="savebw">Save</button></div>
+    <div style="margin-top:8px">${[...S.bw].reverse().slice(0,8).map(b=>`<div class="sess"><span class="d">${fmtDate(b.measured_on)}</span><span class="grow right">${+b.kg} kg <button class="ghost sm" data-act="delbw" data-id="${b.id}">✕</button></span></div>`).join('')}</div>
+  </div>`;
+  const cardioCard = `<div class="card"><h3>Cardio</h3><div style="margin-top:8px">${[...S.cardio].reverse().slice(0,10).map(c=>`<div class="sess"><span class="d">${fmtDate(c.done_on)}</span><span class="grow right">${esc(c.machine||'')} ${[c.minutes&&c.minutes+' min',c.calories&&c.calories+' kcal',c.distance&&c.distance+' mi'].filter(Boolean).join(' · ')}</span></div>`).join('')||'<p class="muted small">Nothing yet.</p>'}</div></div>`;
+  return `<h1>Progress</h1><div class="chips" style="margin-bottom:4px">${chips}</div>${body}${bwCard}${cardioCard}`;
+}
+function chart(pts,{ref=null,decimals=0}={}){
+  const W=340,H=150,px=30,py=14; const data=pts.filter(p=>p.top!=null||p.test!=null);
+  if(data.length<1) return '<p class="muted small">No data yet.</p>';
+  const xs = data.map(p=>new Date(p.date+'T00:00').getTime());
+  const ys = data.flatMap(p=>[p.top,p.test]).filter(v=>v!=null).concat(ref!=null?[ref]:[]);
+  let x0=Math.min(...xs), x1=Math.max(...xs); if(x0===x1){x0-=86400000*7;x1+=86400000*7;}
+  let y0=Math.min(...ys), y1=Math.max(...ys); const pad=Math.max((y1-y0)*0.15, decimals?0.5:2.5); y0-=pad; y1+=pad;
+  const X=t=>px+(t-x0)/(x1-x0)*(W-px-8), Y=v=>H-py-(v-y0)/(y1-y0)*(H-2*py);
+  const line = data.filter(p=>p.top!=null).map((p,i)=>`${i?'L':'M'}${X(new Date(p.date+'T00:00')).toFixed(1)},${Y(p.top).toFixed(1)}`).join(' ');
+  const dots = data.filter(p=>p.top!=null).map(p=>`<circle cx="${X(new Date(p.date+'T00:00')).toFixed(1)}" cy="${Y(p.top).toFixed(1)}" r="4" fill="var(--accent)"/>`).join('');
+  const tests = data.filter(p=>p.test!=null).map(p=>{const cx=X(new Date(p.date+'T00:00')),cy=Y(p.test);return `<path d="M${cx},${cy-5} L${cx+5},${cy} L${cx},${cy+5} L${cx-5},${cy} Z" fill="var(--card)" stroke="var(--warn)" stroke-width="2"/>`;}).join('');
+  const ticks=[y0+pad, y1-pad].map(v=>`<text x="${px-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--ink3)">${v.toFixed(decimals)}</text><line x1="${px}" x2="${W-8}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/>`).join('');
+  const refL = ref!=null?`<line x1="${px}" x2="${W-8}" y1="${Y(ref)}" y2="${Y(ref)}" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${W-8}" y="${Y(ref)-4}" text-anchor="end" font-size="11" fill="var(--good)">${ref}</text>`:'';
+  const lastP = data[data.length-1]; const lv = lastP.top??lastP.test;
+  const lastLbl = `<text x="${Math.min(X(new Date(lastP.date+'T00:00')), W-30).toFixed(1)}" y="${(Y(lv)-9).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">${lv.toFixed(decimals)}</text>`;
+  const xl = `<text x="${px}" y="${H-1}" font-size="11" fill="var(--ink3)">${fmtDate(data[0].date)}</text>`+(data.length>1?`<text x="${W-8}" y="${H-1}" text-anchor="end" font-size="11" fill="var(--ink3)">${fmtDate(lastP.date)}</text>`:'');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${ticks}${refL}<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>${dots}${tests}${lastLbl}${xl}</svg>`;
+}
+
+function renderSettings(){
+  const exRows = S.ex.map(e=>`<div class="sess" style="align-items:center"><span class="grow"><b>${esc(e.name)}</b>${e.archived?' <span class="tiny">(archived)</span>':''}<br><span class="tiny">${DAYS[e.day]} · ${e.core?'core':'extra'} · ${fmtW(e,e.working_weight)} · ${e.target_sets}×${e.target_reps} · +${+e.increment}</span></span><button class="sm" data-act="editex" data-id="${e.id}">Edit</button></div>`).join('');
+  const canImport = window.SEED && S.sets.length===0;
+  return `<h1>Settings</h1>
+    <div class="card"><div class="row between"><div><b>${esc(S.user?.email||'')}</b><br><span class="tiny">${DB.kind==='mock'?'mock data (nothing is saved)':'Supabase'}</span></div><button class="sm" data-act="signout">Sign out</button></div></div>
+    ${canImport?`<div class="card"><b>Import history</b><p class="small muted" style="margin:6px 0 10px">Loads your May–Oct notes (${SEED.sets.length} sets, ${SEED.cardio.length} cardio, ${SEED.bodyweight.length} weigh-ins) and sets up the exercises.</p><button class="primary" data-act="import">Import</button></div>`:''}
+    ${!S.ex.length&&!canImport?`<div class="card"><button class="primary" data-act="seedex">Create the default exercises</button></div>`:''}
+    <div class="card"><div class="row between"><h3>Exercises</h3><button class="sm" data-act="editex" data-id="">+ Add</button></div><div style="margin-top:8px">${exRows||'<p class="muted small">None yet.</p>'}</div></div>
+    <div id="exform"></div>
+    <div class="card"><h3>Rules</h3><p class="small muted" style="margin:6px 0 0">3 sets of 5 at the working weight. Hit 5/5/5 two sessions in a row → next session +5 kg (+2.5 on pull-ups and rows). Get stuck at 3 or fewer reps on a set → next session −5 kg. Swings: every set at target+5 reps → bell goes up. Max attempts (dashed) never count toward the rule. A max test is suggested every 8 weeks.</p></div>
+    <div class="card"><div class="row between wrap"><button class="sm" data-act="export">Export CSV</button><span class="tiny">${S.sets.length} sets · ${S.cardio.length} cardio · ${S.bw.length} weigh-ins</span></div></div>
+    <div class="card"><div class="row between"><span class="small muted">Database connection</span><button class="sm" data-act="reconfig">Change</button></div></div>`;
+}
+function exForm(e){
+  const isNew = !e;
+  e = e || {name:'',day:'push',kind:'weight',working_weight:20,increment:5,target_reps:5,target_sets:3,core:false,archived:false};
+  return `<div class="card" id="exform-card">
+    <h3>${isNew?'New exercise':'Edit exercise'}</h3>
+    <label class="f">Name</label><input id="f-name" value="${esc(e.name)}">
+    <div class="row"><div class="grow"><label class="f">Day</label><select id="f-day">${Object.entries(DAYS).map(([k,v])=>`<option value="${k}" ${e.day===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="grow"><label class="f">Type</label><select id="f-kind"><option value="weight" ${e.kind==='weight'?'selected':''}>Weight</option><option value="bodyweight" ${e.kind==='bodyweight'?'selected':''}>Bodyweight +kg</option><option value="swing" ${e.kind==='swing'?'selected':''}>Swings (reps)</option></select></div></div>
+    <div class="row"><div class="grow"><label class="f">Working weight</label><input id="f-ww" type="number" inputmode="decimal" value="${+e.working_weight}"></div><div class="grow"><label class="f">Increment</label><input id="f-inc" type="number" inputmode="decimal" value="${+e.increment}"></div></div>
+    <div class="row"><div class="grow"><label class="f">Target reps</label><input id="f-reps" type="number" inputmode="numeric" value="${e.target_reps}"></div><div class="grow"><label class="f">Sets</label><input id="f-sets" type="number" inputmode="numeric" value="${e.target_sets}"></div></div>
+    <div class="row" style="margin-top:12px;gap:16px"><label class="toggle"><input type="checkbox" id="f-core" ${e.core?'checked':''}> show on its day</label>${isNew?'':`<label class="toggle"><input type="checkbox" id="f-arch" ${e.archived?'checked':''}> archived</label>`}</div>
+    <div class="row" style="margin-top:14px"><button class="primary grow" data-act="saveex" data-id="${e.id||''}">Save</button><button data-act="cancelex">Cancel</button></div>
+  </div>`;
+}
+
+/* ---------------- actions ---------------- */
+function bind(){
+  const app=$('#app');
+  app.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{S.day=b.dataset.day;render();});
+  app.querySelectorAll('[data-prog]').forEach(b=>b.onclick=()=>{S.progEx=b.dataset.prog;render();});
+  app.querySelectorAll('[data-machine]').forEach(b=>b.onclick=()=>{app.querySelectorAll('[data-machine]').forEach(x=>x.classList.toggle('on',x===b));});
+  app.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{const inp=b.parentElement.querySelector('input');const v=(+inp.value||0)+(+b.dataset.d);inp.value=Math.max(0,Math.round(v*10)/10);});
+  const sel=$('#add-ex'); if(sel) sel.onchange=()=>{ if(sel.value){S.extra.add(sel.value);render();} };
+  const pe=$('#prog-extra'); if(pe) pe.onchange=()=>{ if(pe.value){S.progEx=pe.value;render();} };
+  app.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>act(b.dataset.act,b));
+}
+async function guard(fn){
+  if(S.busy) return; S.busy=true;
+  try{ await fn(); S.err=null; }
+  catch(e){ console.error(e); S.err = friendly(e); }
+  finally{ S.busy=false; render(); }
+}
+function friendly(e){
+  const m = (e && (e.message||String(e)))||'Unknown error';
+  if(/fetch|network|Failed to fetch|load failed/i.test(m)) return "Can't reach the database. If you've been away a while the Supabase project may have paused — open the Supabase dashboard and press Restore, then try again.";
+  return m;
+}
+async function act(a,btn){
+  const t=todayStr();
+  if(a==='logset') return guard(async()=>{
+    const card=btn.closest('[data-ex]'); const ex=exById(card.dataset.ex);
+    const weight=+card.querySelector('input.w').value||0, reps=+card.querySelector('input.r').value||0;
+    if(reps<=0) throw new Error('Reps must be at least 1');
+    const row=await DB.insert('sets',{exercise_id:ex.id,done_on:t,weight,reps,is_test:card.querySelector('input.test').checked});
+    S.sets.push(row);
+  });
+  if(a==='delset') return guard(async()=>{ if(!confirm('Remove this set?')) return; await DB.remove('sets',btn.dataset.id); S.sets=S.sets.filter(s=>s.id!==btn.dataset.id); });
+  if(a==='savecardio') return guard(async()=>{
+    const m=$('#machines .on')?.dataset.machine||null; const minutes=+$('#c-min').value||null, calories=+$('#c-cal').value||null, distance=+$('#c-dist').value||null;
+    if(!m&&!minutes&&!calories&&!distance) throw new Error('Pick a machine or enter something');
+    S.cardio.push(await DB.insert('cardio',{done_on:t,machine:m,minutes,calories,distance}));
+  });
+  if(a==='delcardio') return guard(async()=>{ await DB.remove('cardio',btn.dataset.id); S.cardio=S.cardio.filter(c=>c.id!==btn.dataset.id); });
+  if(a==='savebw') return guard(async()=>{
+    const kg=+$('#bw-kg').value; if(!kg) throw new Error('Enter your weight in kg');
+    S.bw.push(await DB.insert('bodyweight',{measured_on:t,kg})); S.bw.sort((a,b)=>a.measured_on<b.measured_on?-1:1);
+  });
+  if(a==='delbw') return guard(async()=>{ await DB.remove('bodyweight',btn.dataset.id); S.bw=S.bw.filter(b=>b.id!==btn.dataset.id); });
+  if(a==='signout') return guard(async()=>{ await DB.signOut(); S.user=null; location.reload(); });
+  if(a==='reconfig') { if(confirm('Clear the saved database connection? You will need to paste the URL and key again.')){ localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); } return; }
+  if(a==='export') return exportCSV();
+  if(a==='editex'){ const e=btn.dataset.id?exById(btn.dataset.id):null; $('#exform').innerHTML=exForm(e); bind(); $('#exform-card').scrollIntoView({behavior:'smooth'}); return; }
+  if(a==='cancelex'){ $('#exform').innerHTML=''; return; }
+  if(a==='saveex') return guard(async()=>{
+    const patch={name:$('#f-name').value.trim(),day:$('#f-day').value,kind:$('#f-kind').value,working_weight:+$('#f-ww').value||0,increment:+$('#f-inc').value||0,target_reps:+$('#f-reps').value||5,target_sets:+$('#f-sets').value||3,core:$('#f-core').checked};
+    if(!patch.name) throw new Error('Name is required');
+    if(btn.dataset.id){ patch.archived=$('#f-arch').checked; const row=await DB.update('exercises',btn.dataset.id,patch); Object.assign(exById(btn.dataset.id),row); }
+    else { patch.sort_order=S.ex.length; patch.ww_updated_on=t; S.ex.push(await DB.insert('exercises',patch)); }
+  });
+  if(a==='seedex') return guard(async()=>{ await seedExercises(); });
+  if(a==='import') return guard(async()=>{
+    if(!confirm('Import your history? Do this once.')) return;
+    const byKey = await seedExercises();
+    const rows = SEED.sets.map(s=>({exercise_id:byKey[s.key].id,done_on:s.done_on,weight:s.weight,reps:s.reps,is_test:s.is_test}));
+    for(let i=0;i<rows.length;i+=100) S.sets.push(...await DB.insertMany('sets',rows.slice(i,i+100)));
+    S.cardio.push(...await DB.insertMany('cardio',SEED.cardio));
+    S.bw.push(...await DB.insertMany('bodyweight',SEED.bodyweight));
+    S.sets.sort((a,b)=>a.done_on<b.done_on?-1:1);
+    S.tab='today'; S.day=null;
+  });
+}
+async function seedExercises(){
+  const byKey={};
+  const existing = new Map(S.ex.map(e=>[e.name,e]));
+  for(const e of SEED.exercises){
+    if(existing.has(e.name)){ byKey[e.key]=existing.get(e.name); continue; }
+    const {key,...row}=e; row.ww_updated_on=SEED.ww_updated_on;
+    const r=await DB.insert('exercises',row); S.ex.push(r); byKey[key]=r;
+  }
+  return byKey;
+}
+function exportCSV(){
+  const lines=['date,exercise,weight,reps,max_attempt'];
+  for(const s of S.sets){ const e=exById(s.exercise_id); lines.push(`${s.done_on},"${(e?.name||'').replace(/"/g,'""')}",${+s.weight},${s.reps},${s.is_test?1:0}`); }
+  lines.push('','date,cardio_machine,minutes,calories,distance_mi');
+  for(const c of S.cardio) lines.push(`${c.done_on},${c.machine||''},${c.minutes??''},${c.calories??''},${c.distance??''}`);
+  lines.push('','date,bodyweight_kg');
+  for(const b of S.bw) lines.push(`${b.measured_on},${+b.kg}`);
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`gym-${todayStr()}.csv`; a.click();
+}
+
+/* ---------------- auth + boot ---------------- */
+function renderConfig(){
+  $('#app').innerHTML=`<div class="auth"><h1>Connect database</h1><p class="small muted">From your Supabase project: Project Settings → API.</p>
+    <label class="f">Project URL</label><input id="cfg-url" placeholder="https://xxxx.supabase.co">
+    <label class="f">anon public key</label><input id="cfg-key" placeholder="eyJ…">
+    <button class="primary" style="margin-top:14px;width:100%" id="cfg-save">Save</button></div>`;
+  $('#cfg-save').onclick=()=>{ const u=$('#cfg-url').value.trim(), k=$('#cfg-key').value.trim(); if(!u||!k) return; localStorage.setItem('sb_url',u); localStorage.setItem('sb_key',k); location.reload(); };
+}
+function renderAuth(msg=''){
+  $('#nav').classList.add('hidden');
+  $('#app').innerHTML=`<div class="auth"><h1>Gym</h1>${msg?`<div class="note" style="margin-bottom:10px">${esc(msg)}</div>`:''}
+    <label class="f">Email</label><input id="a-email" type="email" autocomplete="email" inputmode="email">
+    <label class="f">Password</label><input id="a-pw" type="password" autocomplete="current-password">
+    <div class="row" style="margin-top:14px"><button class="primary grow" id="a-in">Sign in</button><button id="a-up">Create account</button></div></div>`;
+  const go=async(up)=>{ try{
+      const email=$('#a-email').value.trim(), password=$('#a-pw').value;
+      if(up){ const r=await DB.signUp(email,password); if(!r.session) return renderAuth('Account created. Check your email for a confirmation link, then sign in.'); }
+      else await DB.signIn(email,password);
+      boot();
+    }catch(e){ renderAuth(friendly(e)); } };
+  $('#a-in').onclick=()=>go(false); $('#a-up').onclick=()=>go(true);
+  $('#a-pw').onkeydown=e=>{ if(e.key==='Enter') go(false); };
+}
+async function boot(){
+  const sess=await DB.session();
+  if(!sess) return renderAuth();
+  S.user=sess.user;
+  try{
+    const d=await DB.loadAll(); S.ex=d.exercises; S.sets=d.sets; S.cardio=d.cardio; S.bw=d.bodyweight;
+    await applyProgression();
+    if(!S.ex.length) S.tab='settings';
+  }catch(e){ S.err=friendly(e); }
+  render();
+}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;render();window.scrollTo(0,0);});
+(function init(){
+  if(MOCK){ DB=makeMockDB(); return boot(); }
+  const url=SUPABASE_URL||localStorage.getItem('sb_url'), key=SUPABASE_ANON_KEY||localStorage.getItem('sb_key');
+  if(!url||!key) return renderConfig();
+  if(!window.supabase) { $('#app').innerHTML='<div class="banner">Could not load the database library. Check your connection and reload.</div>'; return; }
+  DB=makeSupabaseDB(url,key);
+  boot();
+})();
+</script>
+</body>
+</html>
